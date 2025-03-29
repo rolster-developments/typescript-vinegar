@@ -23,7 +23,7 @@ export interface AbstractEntity {
   readonly uuid: string;
 }
 
-export interface TransactionRefresh {
+export interface Transaction {
   execute(): Promise<void>;
 }
 

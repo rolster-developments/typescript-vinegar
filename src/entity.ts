@@ -4,7 +4,7 @@ import {
   DirtyModel,
   ModelEditable,
   QueryEntityManager,
-  TransactionRefresh
+  Transaction
 } from './types';
 
 function itIsModelEditable(model: any): model is ModelEditable {
@@ -30,7 +30,7 @@ export abstract class EntityLink<
 export abstract class EntityRefresh<
   E extends AbstractEntity,
   M extends AbstractModel
-> implements TransactionRefresh
+> implements Transaction
 {
   constructor(
     public readonly entity: E,
