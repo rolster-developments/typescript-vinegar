@@ -142,11 +142,7 @@ export class EntityManager implements AbstractEntityManager {
 
   private refreshAll(): Promise<void[]> {
     return Promise.all(
-      this.refreshs.map((refresh) => {
-        refresh.verify();
-
-        this._dataSource.refresh(refresh.model);
-      })
+      this.refreshs.map((refresh) => this._dataSource.refresh(refresh))
     );
   }
 
@@ -162,7 +158,7 @@ export class EntityManager implements AbstractEntityManager {
           return syncs;
         }, [])
         .map(([model, dirty]) => {
-          return this._dataSource.refresh(model, dirty);
+          return this._dataSource.update(model, dirty);
         })
     );
   }

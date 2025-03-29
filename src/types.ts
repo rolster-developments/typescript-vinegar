@@ -23,6 +23,10 @@ export interface AbstractEntity {
   readonly uuid: string;
 }
 
+export interface TransactionRefresh {
+  execute(): Promise<void>;
+}
+
 export interface QueryEntityManager {
   select<T extends AbstractModel>(entity: AbstractEntity): Optional<T>;
 }

@@ -3,7 +3,8 @@ import {
   AbstractModel,
   DirtyModel,
   ModelEditable,
-  QueryEntityManager
+  QueryEntityManager,
+  TransactionRefresh
 } from './types';
 
 function itIsModelEditable(model: any): model is ModelEditable {
@@ -29,7 +30,8 @@ export abstract class EntityLink<
 export abstract class EntityRefresh<
   E extends AbstractEntity,
   M extends AbstractModel
-> {
+> implements TransactionRefresh
+{
   constructor(
     public readonly entity: E,
     public readonly model: M,
@@ -38,7 +40,7 @@ export abstract class EntityRefresh<
 
   public abstract refresh(): void;
 
-  public verify(): void {
+  public async execute(): Promise<void> {
     this.refresh();
   }
 }
