@@ -56,7 +56,7 @@ export class EntityManager implements AbstractEntityManager {
 
   private procedures: AbstractProcedure[] = [];
 
-  constructor(private dataSource: AbstractEntityDataSource) {
+  constructor(private _dataSource: AbstractEntityDataSource) {
     this.relations = new Map<string, AbstractModel>();
   }
 
@@ -134,7 +134,7 @@ export class EntityManager implements AbstractEntityManager {
         fromPromise(link.create(this)).then((model) => {
           link.bindable && this.relation(link.entity, model);
 
-          return this.dataSource.insert(model);
+          return this._dataSource.insert(model);
         })
       )
     );
@@ -142,7 +142,7 @@ export class EntityManager implements AbstractEntityManager {
 
   private refreshAll(): Promise<void[]> {
     return Promise.all(
-      this.refreshs.map(({ model }) => this.dataSource.refresh(model))
+      this.refreshs.map(({ model }) => this._dataSource.refresh(model))
     );
   }
 
@@ -158,26 +158,26 @@ export class EntityManager implements AbstractEntityManager {
           return syncs;
         }, [])
         .map(([model, dirty]) => {
-          return this.dataSource.refresh(model, dirty);
+          return this._dataSource.refresh(model, dirty);
         })
     );
   }
 
   private destroyAll(): Promise<void[]> {
     return Promise.all(
-      this.destroys.map((destroy) => this.dataSource.delete(destroy))
+      this.destroys.map((destroy) => this._dataSource.delete(destroy))
     );
   }
 
   private hiddenAll(): Promise<void[]> {
     return Promise.all(
-      this.hiddens.map((hidden) => this.dataSource.hidden(hidden))
+      this.hiddens.map((hidden) => this._dataSource.hidden(hidden))
     );
   }
 
   private procedureAll(): Promise<void[]> {
     return Promise.all(
-      this.procedures.map((procedure) => this.dataSource.procedure(procedure))
+      this.procedures.map((procedure) => this._dataSource.procedure(procedure))
     );
   }
 }
