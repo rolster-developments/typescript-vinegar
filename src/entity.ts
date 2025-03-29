@@ -21,7 +21,7 @@ export abstract class EntityRefresh<
   constructor(
     public readonly entity: E,
     public readonly model: M,
-    public readonly bindable = true
+    public readonly relationable = true
   ) {}
 
   public abstract refresh(): void;
@@ -43,14 +43,14 @@ export abstract class EntitySync<
   E extends AbstractEntity,
   M extends AbstractModel
 > {
-  private firstDirty: DirtyModel;
+  private _dirty: DirtyModel;
 
   constructor(
     public readonly entity: E,
     public readonly model: M,
-    public readonly bindable = true
+    public readonly relationable = true
   ) {
-    this.firstDirty = this.createDirtyFromModel(model);
+    this._dirty = this.createDirtyFromModel(model);
   }
 
   public abstract sync(): void;
@@ -64,29 +64,29 @@ export abstract class EntitySync<
   private createDirtyFromModel(model: M): DirtyModel {
     const dirty: DirtyModel = {};
 
-    Object.keys(model).forEach((key) => {
-      dirty[key] = (model as any)[key];
+    Object.entries(model).forEach(([key, value]) => {
+      dirty[key] = value;
     });
 
     return dirty;
   }
 
   private createDirty(): Undefined<DirtyModel> {
-    const currentDirty = this.createDirtyFromModel(this.model);
-    const finalDirty: DirtyModel = {};
+    const _modelDirty = this.createDirtyFromModel(this.model);
+    const _dirty: DirtyModel = {};
 
-    Object.keys(currentDirty).forEach((key) => {
-      if (currentDirty[key] !== this.firstDirty[key]) {
-        finalDirty[key] = currentDirty[key];
+    Object.entries(_modelDirty).forEach(([key, value]) => {
+      if (_modelDirty[key] !== this._dirty[key]) {
+        _dirty[key] = value;
       }
     });
 
-    const requiredUpdate = Object.keys(finalDirty).length > 0;
+    const requiredUpdate = Object.keys(_dirty).length > 0;
 
     if (requiredUpdate && itIsModelEditable(this.model)) {
-      finalDirty['updatedAt'] = new Date();
+      _dirty['updatedAt'] = new Date();
     }
 
-    return requiredUpdate ? finalDirty : undefined;
+    return requiredUpdate ? _dirty : undefined;
   }
 }

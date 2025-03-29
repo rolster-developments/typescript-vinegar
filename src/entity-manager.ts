@@ -10,9 +10,9 @@ import {
 } from './types';
 import { AbstractProcedure } from './procedure';
 
-type ManagerLinkOptions = EntityLink<AbstractEntity, AbstractModel>;
-type ManagerRefreshOptions = EntityRefresh<AbstractEntity, AbstractModel>;
-type ManagerSyncOptions = EntitySync<AbstractEntity, AbstractModel>;
+type LinkOptions = EntityLink<AbstractEntity, AbstractModel>;
+type RefreshOptions = EntityRefresh<AbstractEntity, AbstractModel>;
+type SyncOptions = EntitySync<AbstractEntity, AbstractModel>;
 type SyncPromise = [AbstractModel, DirtyModel];
 
 function itIsModelHidden(model: any): model is ModelHideable {
@@ -20,11 +20,11 @@ function itIsModelHidden(model: any): model is ModelHideable {
 }
 
 export abstract class AbstractEntityManager implements QueryEntityManager {
-  abstract persist(options: ManagerLinkOptions): void;
+  abstract persist(options: LinkOptions): void;
 
-  abstract refresh(options: ManagerRefreshOptions): void;
+  abstract refresh(options: RefreshOptions): void;
 
-  abstract sync(options: ManagerSyncOptions): void;
+  abstract sync(options: SyncOptions): void;
 
   abstract destroy(entity: AbstractEntity): void;
 
@@ -44,11 +44,11 @@ export abstract class AbstractEntityManager implements QueryEntityManager {
 export class EntityManager implements AbstractEntityManager {
   private relations: Map<string, AbstractModel>;
 
-  private links: ManagerLinkOptions[] = [];
+  private links: LinkOptions[] = [];
 
-  private refreshs: ManagerRefreshOptions[] = [];
+  private refreshs: RefreshOptions[] = [];
 
-  private syncs: ManagerSyncOptions[] = [];
+  private syncs: SyncOptions[] = [];
 
   private destroys: AbstractModel[] = [];
 
@@ -56,22 +56,22 @@ export class EntityManager implements AbstractEntityManager {
 
   private procedures: AbstractProcedure[] = [];
 
-  constructor(private source: AbstractEntityDataSource) {
+  constructor(private dataSource: AbstractEntityDataSource) {
     this.relations = new Map<string, AbstractModel>();
   }
 
-  public persist(options: ManagerLinkOptions): void {
+  public persist(options: LinkOptions): void {
     this.links.push(options);
   }
 
-  public refresh(options: ManagerRefreshOptions): void {
-    options.bindable && this.relation(options.entity, options.model);
+  public refresh(options: RefreshOptions): void {
+    options.relationable && this.relation(options.entity, options.model);
 
     this.refreshs.push(options);
   }
 
-  public sync(options: ManagerSyncOptions): void {
-    options.bindable && this.relation(options.entity, options.model);
+  public sync(options: SyncOptions): void {
+    options.relationable && this.relation(options.entity, options.model);
 
     this.syncs.push(options);
   }
@@ -129,18 +129,12 @@ export class EntityManager implements AbstractEntityManager {
   }
 
   private persistAll(): Promise<void[]> {
-    const { links, source } = this;
-
     return Promise.all(
-      links.map((link) =>
+      this.links.map((link) =>
         fromPromise(link.create(this)).then((model) => {
-          const { bindable, entity } = link;
+          link.bindable && this.relation(link.entity, model);
 
-          if (bindable) {
-            this.relation(entity, model);
-          }
-
-          return source.insert(model);
+          return this.dataSource.insert(model);
         })
       )
     );
@@ -148,7 +142,7 @@ export class EntityManager implements AbstractEntityManager {
 
   private refreshAll(): Promise<void[]> {
     return Promise.all(
-      this.refreshs.map(({ model }) => this.source.refresh(model))
+      this.refreshs.map(({ model }) => this.dataSource.refresh(model))
     );
   }
 
@@ -164,26 +158,26 @@ export class EntityManager implements AbstractEntityManager {
           return syncs;
         }, [])
         .map(([model, dirty]) => {
-          return this.source.refresh(model, dirty);
+          return this.dataSource.refresh(model, dirty);
         })
     );
   }
 
   private destroyAll(): Promise<void[]> {
     return Promise.all(
-      this.destroys.map((destroy) => this.source.delete(destroy))
+      this.destroys.map((destroy) => this.dataSource.delete(destroy))
     );
   }
 
   private hiddenAll(): Promise<void[]> {
     return Promise.all(
-      this.hiddens.map((hidden) => this.source.hidden(hidden))
+      this.hiddens.map((hidden) => this.dataSource.hidden(hidden))
     );
   }
 
   private procedureAll(): Promise<void[]> {
     return Promise.all(
-      this.procedures.map((procedure) => this.source.procedure(procedure))
+      this.procedures.map((procedure) => this.dataSource.procedure(procedure))
     );
   }
 }
