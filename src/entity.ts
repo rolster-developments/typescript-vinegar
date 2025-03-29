@@ -14,6 +14,18 @@ export class Entity implements AbstractEntity {
   constructor(public readonly uuid: string) {}
 }
 
+export abstract class EntityLink<
+  E extends AbstractEntity,
+  M extends AbstractModel
+> {
+  constructor(
+    public readonly entity: E,
+    public readonly relationable = true
+  ) {}
+
+  public abstract create(manager: QueryEntityManager): M | Promise<M>;
+}
+
 export abstract class EntityRefresh<
   E extends AbstractEntity,
   M extends AbstractModel
@@ -25,18 +37,10 @@ export abstract class EntityRefresh<
   ) {}
 
   public abstract refresh(): void;
-}
 
-export abstract class EntityLink<
-  E extends AbstractEntity,
-  M extends AbstractModel
-> {
-  constructor(
-    public readonly entity: E,
-    public readonly bindable = true
-  ) {}
-
-  public abstract create(manager: QueryEntityManager): M | Promise<M>;
+  public verify(): void {
+    this.refresh();
+  }
 }
 
 export abstract class EntitySync<

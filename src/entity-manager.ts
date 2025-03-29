@@ -88,8 +88,8 @@ export class EntityManager implements AbstractEntityManager {
     this.procedures.push(procedure);
   }
 
-  public relation({ uuid }: AbstractEntity, model: AbstractModel): void {
-    this.relations.set(uuid, model);
+  public relation(entity: AbstractEntity, model: AbstractModel): void {
+    this.relations.set(entity.uuid, model);
   }
 
   public link<E extends AbstractEntity>(entity: E, model: AbstractModel): E {
@@ -98,11 +98,11 @@ export class EntityManager implements AbstractEntityManager {
     return entity;
   }
 
-  public select<M extends AbstractModel>({
-    uuid
-  }: AbstractEntity): Optional<M> {
+  public select<M extends AbstractModel>(entity: AbstractEntity): Optional<M> {
     return Optional.build(
-      this.relations.has(uuid) ? (this.relations.get(uuid) as M) : undefined
+      this.relations.has(entity.uuid)
+        ? (this.relations.get(entity.uuid) as M)
+        : undefined
     );
   }
 
@@ -132,7 +132,7 @@ export class EntityManager implements AbstractEntityManager {
     return Promise.all(
       this.links.map((link) =>
         fromPromise(link.create(this)).then((model) => {
-          link.bindable && this.relation(link.entity, model);
+          link.relationable && this.relation(link.entity, model);
 
           return this._dataSource.insert(model);
         })
@@ -142,7 +142,11 @@ export class EntityManager implements AbstractEntityManager {
 
   private refreshAll(): Promise<void[]> {
     return Promise.all(
-      this.refreshs.map(({ model }) => this._dataSource.refresh(model))
+      this.refreshs.map((refresh) => {
+        refresh.verify();
+
+        this._dataSource.refresh(refresh.model);
+      })
     );
   }
 
