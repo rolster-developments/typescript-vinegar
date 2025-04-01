@@ -1,3 +1,5 @@
+import { PersistentUnitResult } from './result';
+
 export abstract class AbstractPersistentUnit {
-  abstract flush(): Promise<void>;
+  abstract flush(): Promise<PersistentUnitResult[]>;
 }

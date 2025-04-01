@@ -1,6 +1,8 @@
 import { Optional, fromPromise } from '@rolster/commons';
 import { AbstractEntityDataSource } from './datasource';
 import { EntityLink, EntitySync, EntityRefresh } from './entity';
+import { AbstractProcedure } from './procedure';
+import { PersistentUnitResult } from './result';
 import {
   AbstractModel,
   DirtyModel,
@@ -8,7 +10,6 @@ import {
   ModelHideable,
   QueryEntityManager
 } from './types';
-import { AbstractProcedure } from './procedure';
 
 type LinkOptions = EntityLink<AbstractEntity, AbstractModel>;
 type RefreshOptions = EntityRefresh<AbstractEntity, AbstractModel>;
@@ -36,7 +37,7 @@ export abstract class AbstractEntityManager implements QueryEntityManager {
 
   abstract select<T extends AbstractModel>(entity: AbstractEntity): Optional<T>;
 
-  abstract flush(): Promise<void>;
+  abstract flush(): Promise<PersistentUnitResult[]>;
 
   abstract dispose(): void;
 }
@@ -106,15 +107,19 @@ export class EntityManager implements AbstractEntityManager {
     );
   }
 
-  public async flush(): Promise<void> {
-    await this.persistAll();
-    await this.refreshAll();
-    await this.syncAll();
-    await this.hiddenAll();
-    await this.destroyAll();
-    await this.procedureAll();
+  public async flush(): Promise<PersistentUnitResult[]> {
+    const results = [
+      ...(await this.persistAll()),
+      ...(await this.refreshAll()),
+      ...(await this.syncAll()),
+      ...(await this.hiddenAll()),
+      ...(await this.destroyAll()),
+      ...(await this.procedureAll())
+    ];
 
     this.dispose();
+
+    return results;
   }
 
   public dispose(): void {
@@ -128,7 +133,7 @@ export class EntityManager implements AbstractEntityManager {
     this.procedures = [];
   }
 
-  private persistAll(): Promise<void[]> {
+  private persistAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
       this.links.map((link) =>
         fromPromise(link.create(this)).then((model) => {
@@ -140,13 +145,13 @@ export class EntityManager implements AbstractEntityManager {
     );
   }
 
-  private refreshAll(): Promise<void[]> {
+  private refreshAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
       this.refreshs.map((refresh) => this._dataSource.refresh(refresh))
     );
   }
 
-  private syncAll(): Promise<void[]> {
+  private syncAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
       this.syncs
         .filter(({ model }) => !this.destroys.includes(model))
@@ -163,19 +168,19 @@ export class EntityManager implements AbstractEntityManager {
     );
   }
 
-  private destroyAll(): Promise<void[]> {
+  private destroyAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
       this.destroys.map((destroy) => this._dataSource.delete(destroy))
     );
   }
 
-  private hiddenAll(): Promise<void[]> {
+  private hiddenAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
       this.hiddens.map((hidden) => this._dataSource.hidden(hidden))
     );
   }
 
-  private procedureAll(): Promise<void[]> {
+  private procedureAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
       this.procedures.map((procedure) => this._dataSource.procedure(procedure))
     );
