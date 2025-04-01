@@ -6,7 +6,8 @@ export type PersistentUnitResultCode =
   | 'update'
   | 'delete'
   | 'hidden'
-  | 'procedure';
+  | 'procedure'
+  | 'operation';
 
 export class PersistentUnitResult {
   constructor(
