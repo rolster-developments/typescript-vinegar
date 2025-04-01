@@ -5,4 +5,5 @@ export * from './entity';
 export * from './persistent-unit';
 export * from './procedure';
 export * from './repository';
+export * from './result';
 export * from './types';
