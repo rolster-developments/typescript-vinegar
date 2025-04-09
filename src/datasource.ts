@@ -2,10 +2,12 @@ import { AbstractProcedure } from './procedure';
 import { PersistentUnitResult } from './result';
 import { AbstractModel, DirtyModel, ModelHideable, Transaction } from './types';
 
-export abstract class AbstractEntityDataSource {
+export abstract class AbstractEntityDataSource<
+  T extends Transaction = Transaction
+> {
   abstract insert(model: AbstractModel): Promise<PersistentUnitResult>;
 
-  abstract refresh(transaction: Transaction): Promise<PersistentUnitResult>;
+  abstract refresh(transaction: T): Promise<PersistentUnitResult>;
 
   abstract update(
     model: AbstractModel,
@@ -16,5 +18,7 @@ export abstract class AbstractEntityDataSource {
 
   abstract hidden(model: ModelHideable): Promise<PersistentUnitResult>;
 
-  abstract procedure(procedure: AbstractProcedure): Promise<PersistentUnitResult>;
+  abstract procedure(
+    procedure: AbstractProcedure
+  ): Promise<PersistentUnitResult>;
 }
