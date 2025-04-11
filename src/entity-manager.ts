@@ -156,7 +156,7 @@ export class EntityManager implements AbstractEntityManager {
       this.syncs
         .filter(({ model }) => !this.destroys.includes(model))
         .reduce((syncs: SyncPromise[], sync) => {
-          const dirty = sync.verify();
+          const dirty = sync.verify(this);
 
           dirty && syncs.push([sync.model, dirty]);
 

@@ -59,10 +59,10 @@ export abstract class EntitySync<
     this._dirty = this.createDirtyFromModel(model);
   }
 
-  public abstract sync(): void;
+  public abstract sync(manager: QueryEntityManager): void;
 
-  public verify(): Undefined<DirtyModel> {
-    this.sync();
+  public verify(manager: QueryEntityManager): Undefined<DirtyModel> {
+    this.sync(manager);
 
     return this.createDirty();
   }
