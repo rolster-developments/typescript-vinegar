@@ -49,14 +49,14 @@ export abstract class EntitySync<
   E extends AbstractEntity,
   M extends AbstractModel
 > {
-  private _dirty: DirtyModel;
+  private dirty: DirtyModel;
 
   constructor(
     public readonly entity: E,
     public readonly model: M,
     public readonly relationable = true
   ) {
-    this._dirty = this.createDirtyFromModel(model);
+    this.dirty = this.createDirtyFromModel(model);
   }
 
   public abstract sync(manager: QueryEntityManager): void;
@@ -82,7 +82,7 @@ export abstract class EntitySync<
     const _dirty: DirtyModel = {};
 
     Object.entries(_modelDirty).forEach(([key, value]) => {
-      if (_modelDirty[key] !== this._dirty[key]) {
+      if (_modelDirty[key] !== this.dirty[key]) {
         _dirty[key] = value;
       }
     });

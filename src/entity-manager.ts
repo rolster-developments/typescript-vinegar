@@ -11,9 +11,9 @@ import {
   QueryEntityManager
 } from './types';
 
-type LinkOptions = EntityLink<AbstractEntity, AbstractModel>;
-type RefreshOptions = EntityRefresh<AbstractEntity, AbstractModel>;
-type SyncOptions = EntitySync<AbstractEntity, AbstractModel>;
+type VinegarLink = EntityLink<AbstractEntity, AbstractModel>;
+type VinegarRefresh = EntityRefresh<AbstractEntity, AbstractModel>;
+type VinegarSync = EntitySync<AbstractEntity, AbstractModel>;
 type SyncPromise = [AbstractModel, DirtyModel];
 
 function itIsModelHidden(model: any): model is ModelHideable {
@@ -21,11 +21,11 @@ function itIsModelHidden(model: any): model is ModelHideable {
 }
 
 export abstract class AbstractEntityManager implements QueryEntityManager {
-  abstract persist(options: LinkOptions): void;
+  abstract persist(options: VinegarLink): void;
 
-  abstract refresh(options: RefreshOptions): void;
+  abstract refresh(options: VinegarRefresh): void;
 
-  abstract sync(options: SyncOptions): void;
+  abstract sync(options: VinegarSync): void;
 
   abstract destroy(entity: AbstractEntity): void;
 
@@ -43,13 +43,13 @@ export abstract class AbstractEntityManager implements QueryEntityManager {
 }
 
 export class EntityManager implements AbstractEntityManager {
-  private relations: Map<string, AbstractModel>;
+  private relations: Map<AbstractEntity, AbstractModel>;
 
-  private links: LinkOptions[] = [];
+  private links: VinegarLink[] = [];
 
-  private refreshs: RefreshOptions[] = [];
+  private refreshs: VinegarRefresh[] = [];
 
-  private syncs: SyncOptions[] = [];
+  private syncs: VinegarSync[] = [];
 
   private destroys: AbstractModel[] = [];
 
@@ -57,24 +57,28 @@ export class EntityManager implements AbstractEntityManager {
 
   private procedures: AbstractProcedure[] = [];
 
-  constructor(private _dataSource: AbstractEntityDataSource) {
-    this.relations = new Map<string, AbstractModel>();
+  constructor(private dataSource: AbstractEntityDataSource) {
+    this.relations = new Map();
   }
 
-  public persist(options: LinkOptions): void {
-    this.links.push(options);
+  public persist(link: VinegarLink): void {
+    this.links.push(link);
   }
 
-  public refresh(options: RefreshOptions): void {
-    options.relationable && this.relation(options.entity, options.model);
+  public refresh(refresh: VinegarRefresh): void {
+    const { entity, model, relationable } = refresh;
 
-    this.refreshs.push(options);
+    relationable && this.relation(entity, model);
+
+    this.refreshs.push(refresh);
   }
 
-  public sync(options: SyncOptions): void {
-    options.relationable && this.relation(options.entity, options.model);
+  public sync(sync: VinegarSync): void {
+    const { entity, model, relationable } = sync;
 
-    this.syncs.push(options);
+    relationable && this.relation(entity, model);
+
+    this.syncs.push(sync);
   }
 
   public destroy(entity: AbstractEntity): void {
@@ -90,7 +94,7 @@ export class EntityManager implements AbstractEntityManager {
   }
 
   public relation(entity: AbstractEntity, model: AbstractModel): void {
-    this.relations.set(entity.uuid, model);
+    this.relations.set(entity, model);
   }
 
   public link<E extends AbstractEntity>(entity: E, model: AbstractModel): E {
@@ -101,9 +105,7 @@ export class EntityManager implements AbstractEntityManager {
 
   public select<M extends AbstractModel>(entity: AbstractEntity): Optional<M> {
     return Optional.build(
-      this.relations.has(entity.uuid)
-        ? (this.relations.get(entity.uuid) as M)
-        : undefined
+      this.relations.has(entity) ? (this.relations.get(entity) as M) : undefined
     );
   }
 
@@ -139,7 +141,7 @@ export class EntityManager implements AbstractEntityManager {
         fromPromise(link.create(this)).then((model) => {
           link.relationable && this.relation(link.entity, model);
 
-          return this._dataSource.insert(model);
+          return this.dataSource.insert(model);
         })
       )
     );
@@ -147,7 +149,7 @@ export class EntityManager implements AbstractEntityManager {
 
   private refreshAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.refreshs.map((refresh) => this._dataSource.refresh(refresh))
+      this.refreshs.map((refresh) => this.dataSource.refresh(refresh))
     );
   }
 
@@ -163,26 +165,26 @@ export class EntityManager implements AbstractEntityManager {
           return syncs;
         }, [])
         .map(([model, dirty]) => {
-          return this._dataSource.update(model, dirty);
+          return this.dataSource.update(model, dirty);
         })
     );
   }
 
   private destroyAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.destroys.map((destroy) => this._dataSource.delete(destroy))
+      this.destroys.map((destroy) => this.dataSource.delete(destroy))
     );
   }
 
   private hiddenAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.hiddens.map((hidden) => this._dataSource.hidden(hidden))
+      this.hiddens.map((hidden) => this.dataSource.hidden(hidden))
     );
   }
 
   private procedureAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.procedures.map((procedure) => this._dataSource.procedure(procedure))
+      this.procedures.map((procedure) => this.dataSource.procedure(procedure))
     );
   }
 }
