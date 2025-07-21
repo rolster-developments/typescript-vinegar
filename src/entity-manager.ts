@@ -16,7 +16,7 @@ type VinegarRefresh = EntityRefresh<AbstractEntity, AbstractModel>;
 type VinegarSync = EntitySync<AbstractEntity, AbstractModel>;
 type SyncPromise = [AbstractModel, DirtyModel];
 
-function itIsModelHidden(model: any): model is ModelHideable {
+function isModelHidden(model: any): model is ModelHideable {
   return typeof model === 'object' && 'hidden' in model && 'hiddenAt' in model;
 }
 
@@ -57,7 +57,7 @@ export class EntityManager implements AbstractEntityManager {
 
   private procedures: AbstractProcedure[] = [];
 
-  constructor(private dataSource: AbstractEntityDataSource) {
+  constructor(protected dataSource: AbstractEntityDataSource) {
     this.relations = new Map();
   }
 
@@ -83,7 +83,7 @@ export class EntityManager implements AbstractEntityManager {
 
   public destroy(entity: AbstractEntity): void {
     this.select(entity).present((model) => {
-      itIsModelHidden(model)
+      isModelHidden(model)
         ? this.hiddens.push(model)
         : this.destroys.push(model);
     });
