@@ -42,7 +42,10 @@ export abstract class AbstractEntityManager implements QueryEntityManager {
   abstract dispose(): void;
 }
 
-export class EntityManager implements AbstractEntityManager {
+export class EntityManager<
+  D extends AbstractEntityDataSource = AbstractEntityDataSource
+> implements AbstractEntityManager
+{
   private relations: Map<AbstractEntity, AbstractModel>;
 
   private links: VinegarLink[] = [];
@@ -57,7 +60,7 @@ export class EntityManager implements AbstractEntityManager {
 
   private procedures: AbstractProcedure[] = [];
 
-  constructor(protected dataSource: AbstractEntityDataSource) {
+  constructor(protected dataSource: D) {
     this.relations = new Map();
   }
 

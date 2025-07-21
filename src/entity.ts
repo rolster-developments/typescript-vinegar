@@ -32,7 +32,7 @@ export abstract class EntityRefresh<
   M extends AbstractModel
 > implements Transaction
 {
-  private manager?: QueryEntityManager;
+  protected declare manager: QueryEntityManager;
 
   constructor(
     public readonly entity: E,
@@ -47,7 +47,7 @@ export abstract class EntityRefresh<
   }
 
   public async execute(): Promise<void> {
-    this.manager && this.refresh(this.manager);
+    this.refresh(this.manager);
   }
 }
 
