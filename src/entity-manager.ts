@@ -137,19 +137,23 @@ export class EntityManager implements AbstractEntityManager {
 
   private persistAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.links.map((link) =>
-        fromPromise(link.create(this)).then((model) => {
-          link.relationable && this.relation(link.entity, model);
+      this.links.map(async (link) => {
+        const model = await fromPromise(link.create(this));
 
-          return this.dataSource.insert(model);
-        })
-      )
+        link.relationable && this.relation(link.entity, model);
+
+        return this.dataSource.insert(model);
+      })
     );
   }
 
   private refreshAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.refreshs.map((refresh) => this.dataSource.refresh(refresh))
+      this.refreshs.map((refresh) => {
+        refresh.setManager(this);
+
+        return this.dataSource.refresh(refresh);
+      })
     );
   }
 

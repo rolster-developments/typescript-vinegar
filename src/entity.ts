@@ -7,7 +7,7 @@ import {
   Transaction
 } from './types';
 
-function itIsModelEditable(model: any): model is ModelEditable {
+function isModelEditable(model: any): model is ModelEditable {
   return typeof model === 'object' && 'updatedAt' in model;
 }
 
@@ -32,16 +32,22 @@ export abstract class EntityRefresh<
   M extends AbstractModel
 > implements Transaction
 {
+  private manager?: QueryEntityManager;
+
   constructor(
     public readonly entity: E,
     public readonly model: M,
     public readonly relationable = true
   ) {}
 
-  public abstract refresh(): void;
+  public abstract refresh(manager: QueryEntityManager): void;
+
+  public setManager(manager: QueryEntityManager): void {
+    this.manager = manager;
+  }
 
   public async execute(): Promise<void> {
-    this.refresh();
+    this.manager && this.refresh(this.manager);
   }
 }
 
@@ -78,18 +84,18 @@ export abstract class EntitySync<
   }
 
   private createDirty(): Undefined<DirtyModel> {
-    const _modelDirty = this.createDirtyFromModel(this.model);
+    const _model = this.createDirtyFromModel(this.model);
     const _dirty: DirtyModel = {};
 
-    Object.entries(_modelDirty).forEach(([key, value]) => {
-      if (_modelDirty[key] !== this.dirty[key]) {
+    Object.entries(_model).forEach(([key, value]) => {
+      if (_model[key] !== this.dirty[key]) {
         _dirty[key] = value;
       }
     });
 
     const requiredUpdate = Object.keys(_dirty).length > 0;
 
-    if (requiredUpdate && itIsModelEditable(this.model)) {
+    if (requiredUpdate && isModelEditable(this.model)) {
       _dirty['updatedAt'] = new Date();
     }
 
