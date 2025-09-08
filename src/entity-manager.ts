@@ -12,8 +12,11 @@ import {
 } from './types';
 
 type VinegarLink = EntityLink<AbstractEntity, AbstractModel>;
+
 type VinegarRefresh = EntityRefresh<AbstractEntity, AbstractModel>;
+
 type VinegarSync = EntitySync<AbstractEntity, AbstractModel>;
+
 type SyncPromise = [AbstractModel, DirtyModel];
 
 function isModelHidden(model: any): model is ModelHideable {
@@ -85,11 +88,15 @@ export class EntityManager<
   }
 
   public destroy(entity: AbstractEntity): void {
-    this.select(entity).present((model) => {
+    const optional = this.select(entity);
+
+    if (optional.isPresent()) {
+      const model = optional.get();
+
       isModelHidden(model)
         ? this.hiddens.push(model)
         : this.destroys.push(model);
-    });
+    }
   }
 
   public procedure(procedure: AbstractProcedure): void {
