@@ -1,4 +1,5 @@
 import { Optional, fromPromise } from '@rolster/commons';
+import { v4 as uuid } from 'uuid';
 import { AbstractEntityDataSource } from './datasource';
 import { EntityLink, EntitySync, EntityRefresh } from './entity';
 import { AbstractProcedure } from './procedure';
@@ -24,6 +25,8 @@ function isModelHidden(model: any): model is ModelHideable {
 }
 
 export abstract class AbstractEntityManager implements QueryEntityManager {
+  abstract uuid: string;
+
   abstract persist(options: VinegarLink): void;
 
   abstract refresh(options: VinegarRefresh): void;
@@ -63,7 +66,10 @@ export class EntityManager<
 
   private procedures: AbstractProcedure[] = [];
 
+  public readonly uuid: string;
+
   constructor(protected dataSource: D) {
+    this.uuid = uuid();
     this.relations = new Map();
   }
 
