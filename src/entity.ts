@@ -7,7 +7,7 @@ import {
   Transaction
 } from './types';
 
-function isModelEditable(model: any): model is ModelEditable {
+function modelIsEditable(model: any): model is ModelEditable {
   return typeof model === 'object' && 'updatedAt' in model;
 }
 
@@ -15,7 +15,7 @@ export class Entity implements AbstractEntity {
   constructor(public readonly uuid: string) {}
 }
 
-export abstract class EntityLink<
+export abstract class EntityPersist<
   E extends AbstractEntity,
   M extends AbstractModel
 > {
@@ -68,9 +68,7 @@ export abstract class EntitySync<
   public abstract sync(manager: QueryEntityManager): void;
 
   public verify(manager: QueryEntityManager): Undefined<DirtyModel> {
-    this.sync(manager);
-
-    return this.createDirty();
+    return this.verifySync(manager);
   }
 
   private createDirtyFromModel(model: M): DirtyModel {
@@ -83,22 +81,24 @@ export abstract class EntitySync<
     return dirty;
   }
 
-  private createDirty(): Undefined<DirtyModel> {
-    const _model = this.createDirtyFromModel(this.model);
-    const _dirty: DirtyModel = {};
+  private verifySync(manager: QueryEntityManager): Undefined<DirtyModel> {
+    this.sync(manager); // Sync data Entity/Model
 
-    Object.entries(_model).forEach(([key, value]) => {
-      if (_model[key] !== this.dirty[key]) {
-        _dirty[key] = value;
+    const model = this.createDirtyFromModel(this.model);
+    const dirty: DirtyModel = {};
+
+    Object.entries(model).forEach(([key, value]) => {
+      if (model[key] !== this.dirty[key]) {
+        dirty[key] = value;
       }
     });
 
-    const requiredUpdate = Object.keys(_dirty).length > 0;
+    const requiredUpdate = Object.keys(dirty).length > 0;
 
-    if (requiredUpdate && isModelEditable(this.model)) {
-      _dirty['updatedAt'] = new Date();
+    if (requiredUpdate && modelIsEditable(this.model)) {
+      dirty['updatedAt'] = new Date();
     }
 
-    return requiredUpdate ? _dirty : undefined;
+    return requiredUpdate ? dirty : undefined;
   }
 }

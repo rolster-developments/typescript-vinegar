@@ -1,4 +1,4 @@
-import { Optional } from '@rolster/commons';
+import { Result } from '@rolster/commons';
 
 export type DirtyModel = Record<string, any>;
 
@@ -28,5 +28,5 @@ export interface Transaction {
 }
 
 export interface QueryEntityManager {
-  select<T extends AbstractModel>(entity: AbstractEntity): Optional<T>;
+  select<M extends AbstractModel>(entity: AbstractEntity): Result<M>;
 }

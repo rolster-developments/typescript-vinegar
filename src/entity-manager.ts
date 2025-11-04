@@ -1,18 +1,18 @@
-import { Optional, fromPromise } from '@rolster/commons';
+import { Result, ResultFactory, fromPromise } from '@rolster/commons';
 import { v4 as uuid } from 'uuid';
 import { AbstractEntityDataSource } from './datasource';
-import { EntityLink, EntitySync, EntityRefresh } from './entity';
+import { EntityPersist, EntityRefresh, EntitySync } from './entity';
 import { AbstractProcedure } from './procedure';
 import { PersistentUnitResult } from './result';
 import {
+  AbstractEntity,
   AbstractModel,
   DirtyModel,
-  AbstractEntity,
   ModelHideable,
   QueryEntityManager
 } from './types';
 
-type VinegarLink = EntityLink<AbstractEntity, AbstractModel>;
+type VinegarPersist = EntityPersist<AbstractEntity, AbstractModel>;
 
 type VinegarRefresh = EntityRefresh<AbstractEntity, AbstractModel>;
 
@@ -20,14 +20,14 @@ type VinegarSync = EntitySync<AbstractEntity, AbstractModel>;
 
 type SyncPromise = [AbstractModel, DirtyModel];
 
-function isModelHidden(model: any): model is ModelHideable {
+function modelIsHideable(model: any): model is ModelHideable {
   return typeof model === 'object' && 'hidden' in model && 'hiddenAt' in model;
 }
 
 export abstract class AbstractEntityManager implements QueryEntityManager {
   abstract uuid: string;
 
-  abstract persist(options: VinegarLink): void;
+  abstract persist(options: VinegarPersist): void;
 
   abstract refresh(options: VinegarRefresh): void;
 
@@ -41,7 +41,7 @@ export abstract class AbstractEntityManager implements QueryEntityManager {
 
   abstract link<E extends AbstractEntity>(entity: E, model: AbstractModel): E;
 
-  abstract select<T extends AbstractModel>(entity: AbstractEntity): Optional<T>;
+  abstract select<T extends AbstractModel>(entity: AbstractEntity): Result<T>;
 
   abstract flush(): Promise<PersistentUnitResult[]>;
 
@@ -54,7 +54,7 @@ export class EntityManager<
 {
   private relations: Map<AbstractEntity, AbstractModel>;
 
-  private links: VinegarLink[] = [];
+  private persists: VinegarPersist[] = [];
 
   private refreshs: VinegarRefresh[] = [];
 
@@ -73,8 +73,8 @@ export class EntityManager<
     this.relations = new Map();
   }
 
-  public persist(link: VinegarLink): void {
-    this.links.push(link);
+  public persist(persist: VinegarPersist): void {
+    this.persists.push(persist);
   }
 
   public refresh(refresh: VinegarRefresh): void {
@@ -94,14 +94,12 @@ export class EntityManager<
   }
 
   public destroy(entity: AbstractEntity): void {
-    const optional = this.select(entity);
+    const result = this.select(entity);
 
-    if (optional.isPresent()) {
-      const model = optional.get();
-
-      isModelHidden(model)
-        ? this.hiddens.push(model)
-        : this.destroys.push(model);
+    if (!result.isError) {
+      modelIsHideable(result.value)
+        ? this.hiddens.push(result.value)
+        : this.destroys.push(result.value);
     }
   }
 
@@ -119,10 +117,12 @@ export class EntityManager<
     return entity;
   }
 
-  public select<M extends AbstractModel>(entity: AbstractEntity): Optional<M> {
-    return Optional.build(
-      this.relations.has(entity) ? (this.relations.get(entity) as M) : undefined
-    );
+  public select<M extends AbstractModel>(entity: AbstractEntity): Result<M> {
+    const model = this.relations.get(entity);
+
+    return model
+      ? ResultFactory.success(model as M)
+      : ResultFactory.failure('Not found');
   }
 
   public async flush(): Promise<PersistentUnitResult[]> {
@@ -143,7 +143,7 @@ export class EntityManager<
   public dispose(): void {
     this.relations.clear();
 
-    this.links = [];
+    this.persists = [];
     this.refreshs = [];
     this.syncs = [];
     this.destroys = [];
@@ -153,10 +153,10 @@ export class EntityManager<
 
   private persistAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.links.map(async (link) => {
-        const model = await fromPromise(link.create(this));
+      this.persists.map(async (persist) => {
+        const model = await fromPromise(persist.create(this));
 
-        link.relationable && this.relation(link.entity, model);
+        persist.relationable && this.relation(persist.entity, model);
 
         return this.dataSource.insert(model);
       })
