@@ -2,11 +2,10 @@ import {
   AbstractEntity,
   AbstractModel,
   EditableModel,
-  QueryEntityManager,
-  RefreshValue
+  QueryEntityManager
 } from './types';
 
-type RefreshResponse = RefreshValue[] | Promise<RefreshValue[]>;
+type RefreshResponse = AbstractModel[] | Promise<AbstractModel[]>;
 
 function modelIsEditable(model: any): model is EditableModel {
   return typeof model === 'object' && 'updatedAt' in model;

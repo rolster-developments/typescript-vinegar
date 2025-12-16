@@ -181,11 +181,11 @@ export class EntityManager<
 
   private refreshAll(): Promise<PersistentUnitResult[]> {
     const results = this.refreshs.map(async (refresh) => {
-      const values = (await fromPromise(refresh.dispatch(this))).filter(
-        (value) => !this.destroys.includes(value.model)
+      const models = (await fromPromise(refresh.dispatch(this))).filter(
+        (model) => !this.destroys.includes(model)
       );
 
-      return this.dataSource.refresh(values);
+      return this.dataSource.refresh(models);
     });
 
     return Promise.all(results);

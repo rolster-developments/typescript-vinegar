@@ -1,6 +1,6 @@
 import { AbstractProcedure } from './procedure';
 import { PersistentUnitResult } from './result';
-import { AbstractModel, HideableModel, RefreshValue } from './types';
+import { AbstractModel, HideableModel } from './types';
 
 export abstract class AbstractEntityDataSource {
   abstract insert(model: AbstractModel): Promise<PersistentUnitResult>;
@@ -10,7 +10,7 @@ export abstract class AbstractEntityDataSource {
     changes: LiteralObject
   ): Promise<PersistentUnitResult>;
 
-  abstract refresh(values: RefreshValue[]): Promise<PersistentUnitResult>;
+  abstract refresh(models: AbstractModel[]): Promise<PersistentUnitResult>;
 
   abstract delete(model: AbstractModel): Promise<PersistentUnitResult>;
 

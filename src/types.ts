@@ -21,13 +21,6 @@ export interface AbstractEntity {
   readonly uuid: string;
 }
 
-export class RefreshValue {
-  constructor(
-    public readonly model: AbstractModel,
-    public readonly changes: LiteralObject
-  ) {}
-}
-
 export interface Transaction {
   execute(): Promise<void>;
 }
