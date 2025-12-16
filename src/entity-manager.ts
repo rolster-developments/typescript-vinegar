@@ -14,9 +14,9 @@ import {
 
 type VinegarPersist = EntityPersist<AbstractEntity, AbstractModel>;
 
-type VinegarRefresh = EntityRefresh<AbstractEntity, AbstractModel>;
-
 type VinegarSync = EntitySync<AbstractEntity, AbstractModel>;
+
+type VinegarRefresh = EntityRefresh<AbstractEntity, AbstractModel>;
 
 type SyncPromise = [AbstractModel, DirtyModel];
 
@@ -96,7 +96,7 @@ export class EntityManager<
   public destroy(entity: AbstractEntity): void {
     const result = this.select(entity);
 
-    if (!result.isError) {
+    if (result.isSuccess) {
       modelIsHideable(result.value)
         ? this.hiddens.push(result.value)
         : this.destroys.push(result.value);
@@ -128,8 +128,8 @@ export class EntityManager<
   public async flush(): Promise<PersistentUnitResult[]> {
     const results = [
       ...(await this.persistAll()),
-      ...(await this.refreshAll()),
       ...(await this.syncAll()),
+      ...(await this.refreshAll()),
       ...(await this.hiddenAll()),
       ...(await this.destroyAll()),
       ...(await this.procedureAll())
@@ -152,42 +152,44 @@ export class EntityManager<
   }
 
   private persistAll(): Promise<PersistentUnitResult[]> {
-    return Promise.all(
-      this.persists.map(async (persist) => {
-        const model = await fromPromise(persist.create(this));
+    const persists = this.persists.map(async (persist) => {
+      const model = await fromPromise(persist.create(this));
 
-        persist.relationable && this.relation(persist.entity, model);
+      persist.relationable && this.relation(persist.entity, model);
 
-        return this.dataSource.insert(model);
-      })
-    );
-  }
+      return this.dataSource.insert(model);
+    });
 
-  private refreshAll(): Promise<PersistentUnitResult[]> {
-    return Promise.all(
-      this.refreshs.map((refresh) => {
-        refresh.setManager(this);
-
-        return this.dataSource.refresh(refresh);
-      })
-    );
+    return Promise.all(persists);
   }
 
   private syncAll(): Promise<PersistentUnitResult[]> {
-    return Promise.all(
-      this.syncs
-        .filter(({ model }) => !this.destroys.includes(model))
-        .reduce((syncs: SyncPromise[], sync) => {
-          const dirty = sync.verify(this);
+    const syncs = this.syncs
+      .filter(({ model }) => !this.destroys.includes(model))
+      .reduce((syncs: SyncPromise[], sync) => {
+        const dirty = sync.verify(this);
 
-          dirty && syncs.push([sync.model, dirty]);
+        dirty && syncs.push([sync.model, dirty]);
 
-          return syncs;
-        }, [])
-        .map(([model, dirty]) => {
-          return this.dataSource.update(model, dirty);
-        })
-    );
+        return syncs;
+      }, [])
+      .map(([model, dirty]) => {
+        return this.dataSource.update(model, dirty);
+      });
+
+    return Promise.all(syncs);
+  }
+
+  private refreshAll(): Promise<PersistentUnitResult[]> {
+    const refreshs = this.refreshs.map(async (refresh) => {
+      const models = (await fromPromise(refresh.dispatch(this))).filter(
+        (model) => !this.destroys.includes(model)
+      );
+
+      return this.dataSource.refresh(models);
+    });
+
+    return Promise.all(refreshs);
   }
 
   private destroyAll(): Promise<PersistentUnitResult[]> {

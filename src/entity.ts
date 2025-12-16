@@ -3,9 +3,10 @@ import {
   AbstractModel,
   DirtyModel,
   ModelEditable,
-  QueryEntityManager,
-  Transaction
+  QueryEntityManager
 } from './types';
+
+type RefreshResponse = AbstractModel[] | Promise<AbstractModel[]>;
 
 function modelIsEditable(model: any): model is ModelEditable {
   return typeof model === 'object' && 'updatedAt' in model;
@@ -30,8 +31,7 @@ export abstract class EntityPersist<
 export abstract class EntityRefresh<
   E extends AbstractEntity,
   M extends AbstractModel
-> implements Transaction
-{
+> {
   protected declare manager: QueryEntityManager;
 
   constructor(
@@ -40,15 +40,7 @@ export abstract class EntityRefresh<
     public readonly relationable = true
   ) {}
 
-  public abstract refresh(manager: QueryEntityManager): void;
-
-  public setManager(manager: QueryEntityManager): void {
-    this.manager = manager;
-  }
-
-  public async execute(): Promise<void> {
-    this.refresh(this.manager);
-  }
+  public abstract dispatch(manager: QueryEntityManager): RefreshResponse;
 }
 
 export abstract class EntitySync<
