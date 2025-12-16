@@ -2,6 +2,7 @@ import { Result, ResultFactory, fromPromise } from '@rolster/commons';
 import { v4 as uuid } from 'uuid';
 import { AbstractEntityDataSource } from './datasource';
 import { EntityPersist, EntityRefresh, EntitySync } from './entity';
+import { modelIsHideable } from './helpers';
 import { AbstractProcedure } from './procedure';
 import { PersistentUnitResult } from './result';
 import {
@@ -18,10 +19,6 @@ type VinegarSync = EntitySync<AbstractEntity, AbstractModel>;
 type VinegarRefresh = EntityRefresh<AbstractEntity, AbstractModel>;
 
 type SyncPromise = [AbstractModel, LiteralObject];
-
-function modelIsHideable(model: any): model is HideableModel {
-  return typeof model === 'object' && 'hidden' in model && 'hiddenAt' in model;
-}
 
 export abstract class AbstractEntityManager implements QueryEntityManager {
   abstract uuid: string;
@@ -96,9 +93,11 @@ export class EntityManager<
     const result = this.select(entity);
 
     if (result.isSuccess) {
-      modelIsHideable(result.value)
-        ? this.hiddens.push(result.value)
-        : this.destroys.push(result.value);
+      const model = result.value;
+
+      modelIsHideable(model)
+        ? this.hiddens.push(model)
+        : this.destroys.push(model);
     }
   }
 
@@ -182,7 +181,7 @@ export class EntityManager<
   private refreshAll(): Promise<PersistentUnitResult[]> {
     const results = this.refreshs.map(async (refresh) => {
       const models = (await fromPromise(refresh.dispatch(this))).filter(
-        (model) => !this.destroys.includes(model)
+        ({ model }) => !this.destroys.includes(model)
       );
 
       return this.dataSource.refresh(models);
