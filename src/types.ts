@@ -1,26 +1,31 @@
 import { Result } from '@rolster/commons';
 
-export type DirtyModel = Record<string, any>;
-
 export interface AbstractModel {
   id: number;
 }
 
-export interface ModelEditable extends AbstractModel {
+export interface EditableModel extends AbstractModel {
   updatedAt?: Date;
 }
 
-export interface ModelHideable extends AbstractModel {
+export interface HideableModel extends AbstractModel {
   hidden: boolean;
   hiddenAt?: Date;
 }
 
-export interface Model extends ModelHideable {
+export interface Model extends HideableModel {
   updatedAt?: Date;
 }
 
 export interface AbstractEntity {
   readonly uuid: string;
+}
+
+export class RefreshValue {
+  constructor(
+    public readonly model: AbstractModel,
+    public readonly changes: LiteralObject
+  ) {}
 }
 
 export interface Transaction {

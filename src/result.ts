@@ -2,8 +2,8 @@ import { AbstractModel } from './types';
 
 export type PersistentUnitResultCode =
   | 'insert'
-  | 'refresh'
   | 'update'
+  | 'refresh'
   | 'delete'
   | 'hidden'
   | 'procedure'

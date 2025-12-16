@@ -1,14 +1,14 @@
 import {
   AbstractEntity,
   AbstractModel,
-  DirtyModel,
-  ModelEditable,
-  QueryEntityManager
+  EditableModel,
+  QueryEntityManager,
+  RefreshValue
 } from './types';
 
-type RefreshResponse = AbstractModel[] | Promise<AbstractModel[]>;
+type RefreshResponse = RefreshValue[] | Promise<RefreshValue[]>;
 
-function modelIsEditable(model: any): model is ModelEditable {
+function modelIsEditable(model: any): model is EditableModel {
   return typeof model === 'object' && 'updatedAt' in model;
 }
 
@@ -47,7 +47,7 @@ export abstract class EntitySync<
   E extends AbstractEntity,
   M extends AbstractModel
 > {
-  private dirty: DirtyModel;
+  private dirty: LiteralObject;
 
   constructor(
     public readonly entity: E,
@@ -59,12 +59,12 @@ export abstract class EntitySync<
 
   public abstract sync(manager: QueryEntityManager): void;
 
-  public verify(manager: QueryEntityManager): Undefined<DirtyModel> {
+  public verify(manager: QueryEntityManager): Undefined<LiteralObject> {
     return this.verifySync(manager);
   }
 
-  private createDirtyFromModel(model: M): DirtyModel {
-    const dirty: DirtyModel = {};
+  private createDirtyFromModel(model: M): LiteralObject {
+    const dirty: LiteralObject = {};
 
     Object.entries(model).forEach(([key, value]) => {
       dirty[key] = value;
@@ -73,11 +73,11 @@ export abstract class EntitySync<
     return dirty;
   }
 
-  private verifySync(manager: QueryEntityManager): Undefined<DirtyModel> {
+  private verifySync(manager: QueryEntityManager): Undefined<LiteralObject> {
     this.sync(manager); // Sync data Entity/Model
 
     const model = this.createDirtyFromModel(this.model);
-    const dirty: DirtyModel = {};
+    const dirty: LiteralObject = {};
 
     Object.entries(model).forEach(([key, value]) => {
       if (model[key] !== this.dirty[key]) {
