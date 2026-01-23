@@ -1,6 +1,6 @@
 {
   "name": "@rolster/vinegar",
-  "version": "3.3.5",
+  "version": "3.4.0",
   "description": "Container package of basic classes to implement a clean architecture.",
   "module": "dist/esm/index.js",
   "main": "dist/cjs/index.js",
@@ -26,7 +26,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@rolster/commons": "^3.1.8",
+    "@rolster/commons": "^3.1.9",
     "uuid": "^11.0.3"
   },
   "devDependencies": {

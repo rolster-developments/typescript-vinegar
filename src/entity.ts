@@ -20,6 +20,14 @@ export abstract class EntityPersist<
   public abstract create(manager: QueryEntityManager): M | Promise<M>;
 }
 
+export abstract class EntityPersistList<E extends AbstractEntity> {
+  constructor(public readonly entity: E) {}
+
+  public abstract create(
+    manager: QueryEntityManager
+  ): AbstractModel[] | Promise<AbstractModel[]>;
+}
+
 export abstract class EntitySync<
   E extends AbstractEntity,
   M extends AbstractModel

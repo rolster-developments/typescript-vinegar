@@ -1,7 +1,12 @@
 import { Result, ResultFactory, fromPromise } from '@rolster/commons';
 import { v4 as uuid } from 'uuid';
 import { AbstractEntityDataSource } from './datasource';
-import { EntityPersist, EntityRefresh, EntitySync } from './entity';
+import {
+  EntityPersist,
+  EntityPersistList,
+  EntityRefresh,
+  EntitySync
+} from './entity';
 import { modelIsHideable } from './helpers';
 import { AbstractProcedure } from './procedure';
 import { PersistentUnitResult } from './result';
@@ -14,16 +19,18 @@ import {
 
 type VinegarPersist = EntityPersist<AbstractEntity, AbstractModel>;
 
+type VinegarPersistList = EntityPersistList<AbstractEntity>;
+
 type VinegarSync = EntitySync<AbstractEntity, AbstractModel>;
 
 type VinegarRefresh = EntityRefresh<AbstractEntity, AbstractModel>;
-
-type SyncPromise = [AbstractModel, LiteralObject];
 
 export abstract class AbstractEntityManager implements QueryEntityManager {
   abstract uuid: string;
 
   abstract persist(options: VinegarPersist): void;
+
+  abstract persists(persists: VinegarPersistList): void;
 
   abstract refresh(options: VinegarRefresh): void;
 
@@ -48,37 +55,35 @@ export class EntityManager<
   D extends AbstractEntityDataSource = AbstractEntityDataSource
 > implements AbstractEntityManager
 {
-  private relations: Map<AbstractEntity, AbstractModel>;
+  private _relations: Map<AbstractEntity, AbstractModel>;
 
-  private persists: VinegarPersist[] = [];
+  private _persists: VinegarPersist[] = [];
 
-  private refreshs: VinegarRefresh[] = [];
+  private _persistsList: VinegarPersistList[] = [];
 
-  private syncs: VinegarSync[] = [];
+  private _syncs: VinegarSync[] = [];
 
-  private destroys: AbstractModel[] = [];
+  private _refreshs: VinegarRefresh[] = [];
 
-  private hiddens: HideableModel[] = [];
+  private _procedures: AbstractProcedure[] = [];
 
-  private procedures: AbstractProcedure[] = [];
+  private _hiddens: HideableModel[] = [];
+
+  private _destroys: AbstractModel[] = [];
 
   public readonly uuid: string;
 
   constructor(protected dataSource: D) {
     this.uuid = uuid();
-    this.relations = new Map();
+    this._relations = new Map();
   }
 
   public persist(persist: VinegarPersist): void {
-    this.persists.push(persist);
+    this._persists.push(persist);
   }
 
-  public refresh(refresh: VinegarRefresh): void {
-    const { entity, model, relationable } = refresh;
-
-    relationable && this.relation(entity, model);
-
-    this.refreshs.push(refresh);
+  public persists(persists: VinegarPersistList): void {
+    this._persistsList.push(persists);
   }
 
   public sync(sync: VinegarSync): void {
@@ -86,27 +91,33 @@ export class EntityManager<
 
     relationable && this.relation(entity, model);
 
-    this.syncs.push(sync);
+    this._syncs.push(sync);
+  }
+
+  public refresh(refresh: VinegarRefresh): void {
+    const { entity, model, relationable } = refresh;
+
+    relationable && this.relation(entity, model);
+
+    this._refreshs.push(refresh);
+  }
+
+  public procedure(procedure: AbstractProcedure): void {
+    this._procedures.push(procedure);
   }
 
   public destroy(entity: AbstractEntity): void {
     const result = this.select(entity);
 
     if (result.isSuccess) {
-      const model = result.value;
-
-      modelIsHideable(model)
-        ? this.hiddens.push(model)
-        : this.destroys.push(model);
+      !modelIsHideable(result.value)
+        ? this._destroys.push(result.value)
+        : this._hiddens.push(result.value);
     }
   }
 
-  public procedure(procedure: AbstractProcedure): void {
-    this.procedures.push(procedure);
-  }
-
   public relation(entity: AbstractEntity, model: AbstractModel): void {
-    this.relations.set(entity, model);
+    this._relations.set(entity, model);
   }
 
   public link<E extends AbstractEntity>(entity: E, model: AbstractModel): E {
@@ -116,7 +127,7 @@ export class EntityManager<
   }
 
   public select<M extends AbstractModel>(entity: AbstractEntity): Result<M> {
-    const model = this.relations.get(entity);
+    const model = this._relations.get(entity);
 
     return model
       ? ResultFactory.success(model as M)
@@ -124,13 +135,27 @@ export class EntityManager<
   }
 
   public async flush(): Promise<PersistentUnitResult[]> {
-    const results = [
+    const persists = [
       ...(await this.persistAll()),
-      ...(await this.syncAll()),
-      ...(await this.refreshAll()),
-      ...(await this.hiddenAll()),
-      ...(await this.destroyAll()),
-      ...(await this.procedureAll())
+      ...(await this.persistListAll())
+    ];
+
+    const syncs = await this.syncAll();
+    const refreshs = await this.refreshAll();
+    const procedures = await this.procedureAll();
+
+    const [hiddens, destroys] = await Promise.all([
+      this.hiddenAll(),
+      this.destroyAll()
+    ]);
+
+    const results = [
+      ...persists,
+      ...syncs,
+      ...refreshs,
+      ...procedures,
+      ...hiddens,
+      ...destroys
     ];
 
     this.dispose();
@@ -139,72 +164,96 @@ export class EntityManager<
   }
 
   public dispose(): void {
-    this.relations.clear();
+    this._relations.clear();
 
-    this.persists = [];
-    this.refreshs = [];
-    this.syncs = [];
-    this.destroys = [];
-    this.hiddens = [];
-    this.procedures = [];
+    this._persists = [];
+    this._persistsList = [];
+    this._refreshs = [];
+    this._syncs = [];
+    this._hiddens = [];
+    this._destroys = [];
+    this._procedures = [];
   }
 
-  private persistAll(): Promise<PersistentUnitResult[]> {
-    const results = this.persists.map(async (persist) => {
+  private async persistAll(): Promise<PersistentUnitResult[]> {
+    const results: PersistentUnitResult[] = [];
+
+    for (const persist of this._persists) {
       const model = await fromPromise(persist.create(this));
 
       persist.relationable && this.relation(persist.entity, model);
 
-      return this.dataSource.insert(model);
-    });
+      results.push(await this.dataSource.insert(model));
+    }
 
-    return Promise.all(results);
+    return results;
+  }
+
+  private async persistListAll(): Promise<PersistentUnitResult[]> {
+    const results: PersistentUnitResult[] = [];
+
+    for (const persists of this._persistsList) {
+      const models = await fromPromise(persists.create(this));
+
+      for (const model of models) {
+        results.push(await this.dataSource.insert(model));
+      }
+    }
+
+    return results;
   }
 
   private syncAll(): Promise<PersistentUnitResult[]> {
-    const results = this.syncs
-      .filter(({ model }) => !this.destroys.includes(model))
-      .reduce((syncs: SyncPromise[], sync) => {
-        const dirty = sync.verify(this);
+    const syncs = this._syncs.filter(({ model }) =>
+      !modelIsHideable(model)
+        ? !this._destroys.includes(model)
+        : !this._hiddens.includes(model)
+    );
 
-        dirty && syncs.push([sync.model, dirty]);
+    const syncs$: Promise<PersistentUnitResult>[] = [];
 
-        return syncs;
-      }, [])
-      .map(([model, dirty]) => {
-        return this.dataSource.update(model, dirty);
-      });
+    syncs.forEach((sync) => {
+      const dirty = sync.verify(this);
 
-    return Promise.all(results);
+      if (dirty) {
+        syncs$.push(this.dataSource.update(sync.model, dirty));
+      }
+    });
+
+    return Promise.all(syncs$);
   }
 
-  private refreshAll(): Promise<PersistentUnitResult[]> {
-    const results = this.refreshs.map(async (refresh) => {
-      const models = (await fromPromise(refresh.dispatch(this))).filter(
-        ({ model }) => !this.destroys.includes(model)
+  private async refreshAll(): Promise<PersistentUnitResult[]> {
+    const refreshs$ = this._refreshs.map(async (refresh) => {
+      const _models = await fromPromise(refresh.dispatch(this));
+
+      const models = _models.filter(({ model }) =>
+        !modelIsHideable(model)
+          ? !this._destroys.includes(model)
+          : !this._hiddens.includes(model)
       );
 
       return this.dataSource.refresh(models);
     });
 
-    return Promise.all(results);
+    return Promise.all(refreshs$);
   }
 
-  private destroyAll(): Promise<PersistentUnitResult[]> {
+  private async destroyAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.destroys.map((destroy) => this.dataSource.delete(destroy))
+      this._destroys.map((destroy) => this.dataSource.delete(destroy))
     );
   }
 
-  private hiddenAll(): Promise<PersistentUnitResult[]> {
+  private async hiddenAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.hiddens.map((hidden) => this.dataSource.hidden(hidden))
+      this._hiddens.map((hidden) => this.dataSource.hidden(hidden))
     );
   }
 
-  private procedureAll(): Promise<PersistentUnitResult[]> {
+  private async procedureAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this.procedures.map((procedure) => this.dataSource.procedure(procedure))
+      this._procedures.map((procedure) => this.dataSource.procedure(procedure))
     );
   }
 }
