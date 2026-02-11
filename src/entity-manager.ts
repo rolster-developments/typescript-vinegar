@@ -53,8 +53,7 @@ export abstract class AbstractEntityManager implements QueryEntityManager {
 
 export class EntityManager<
   D extends AbstractEntityDataSource = AbstractEntityDataSource
-> implements AbstractEntityManager
-{
+> implements AbstractEntityManager {
   private _relations: Map<AbstractEntity, AbstractModel>;
 
   private _persists: VinegarPersist[] = [];
@@ -241,19 +240,25 @@ export class EntityManager<
 
   private async destroyAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this._destroys.map((destroy) => this.dataSource.delete(destroy))
+      this._destroys.map((destroy) => {
+        return this.dataSource.delete(destroy)
+      })
     );
   }
 
   private async hiddenAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this._hiddens.map((hidden) => this.dataSource.hidden(hidden))
+      this._hiddens.map((hidden) => {
+        return this.dataSource.hidden(hidden)
+      })
     );
   }
 
   private async procedureAll(): Promise<PersistentUnitResult[]> {
     return Promise.all(
-      this._procedures.map((procedure) => this.dataSource.procedure(procedure))
+      this._procedures.map((procedure) => {
+        return this.dataSource.procedure(this, procedure)
+      })
     );
   }
 }

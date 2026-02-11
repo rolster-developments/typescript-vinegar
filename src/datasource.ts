@@ -1,6 +1,6 @@
 import { AbstractProcedure } from './procedure';
 import { PersistentUnitResult } from './result';
-import { AbstractModel, HideableModel } from './types';
+import { AbstractModel, HideableModel, QueryEntityManager } from './types';
 import { RefreshModel } from './values';
 
 export abstract class AbstractEntityDataSource {
@@ -18,6 +18,7 @@ export abstract class AbstractEntityDataSource {
   abstract hidden(model: HideableModel): Promise<PersistentUnitResult>;
 
   abstract procedure(
+    manager: QueryEntityManager,
     procedure: AbstractProcedure
   ): Promise<PersistentUnitResult>;
 }
