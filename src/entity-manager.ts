@@ -134,27 +134,14 @@ export class EntityManager<
   }
 
   public async flush(): Promise<PersistentUnitResult[]> {
-    const persists = [
-      ...(await this.persistAll()),
-      ...(await this.persistListAll())
-    ];
-
-    const syncs = await this.syncAll();
-    const refreshs = await this.refreshAll();
-    const procedures = await this.procedureAll();
-
-    const [hiddens, destroys] = await Promise.all([
-      this.hiddenAll(),
-      this.destroyAll()
-    ]);
-
     const results = [
-      ...persists,
-      ...syncs,
-      ...refreshs,
-      ...procedures,
-      ...hiddens,
-      ...destroys
+      ...(await this.persistAll()),
+      ...(await this.persistListAll()),
+      ...(await this.syncAll()),
+      ...(await this.refreshAll()),
+      ...(await this.procedureAll()),
+      ...(await this.hiddenAll()),
+      ...(await this.destroyAll())
     ];
 
     this.dispose();
@@ -202,28 +189,30 @@ export class EntityManager<
     return results;
   }
 
-  private syncAll(): Promise<PersistentUnitResult[]> {
+  private async syncAll(): Promise<PersistentUnitResult[]> {
     const syncs = this._syncs.filter(({ model }) =>
       !modelIsHideable(model)
         ? !this._destroys.includes(model)
         : !this._hiddens.includes(model)
     );
 
-    const syncs$: Promise<PersistentUnitResult>[] = [];
+    const results: PersistentUnitResult[] = [];
 
-    syncs.forEach((sync) => {
+    for (const sync of syncs) {
       const dirty = sync.verify(this);
 
       if (dirty) {
-        syncs$.push(this.dataSource.update(sync.model, dirty));
+        results.push(await this.dataSource.update(sync.model, dirty));
       }
-    });
+    }
 
-    return Promise.all(syncs$);
+    return results;
   }
 
   private async refreshAll(): Promise<PersistentUnitResult[]> {
-    const refreshs$ = this._refreshs.map(async (refresh) => {
+    const results: PersistentUnitResult[] = [];
+
+    for (const refresh of this._refreshs) {
       const _models = await fromPromise(refresh.dispatch(this));
 
       const models = _models.filter(({ model }) =>
@@ -232,33 +221,39 @@ export class EntityManager<
           : !this._hiddens.includes(model)
       );
 
-      return this.dataSource.refresh(models);
-    });
+      results.push(await this.dataSource.refresh(models));
+    }
 
-    return Promise.all(refreshs$);
+    return results;
   }
 
   private async destroyAll(): Promise<PersistentUnitResult[]> {
-    return Promise.all(
-      this._destroys.map((destroy) => {
-        return this.dataSource.delete(destroy)
-      })
-    );
+    const results: PersistentUnitResult[] = [];
+
+    for (const destroy of this._destroys) {
+      results.push(await this.dataSource.delete(destroy));
+    }
+
+    return results;
   }
 
   private async hiddenAll(): Promise<PersistentUnitResult[]> {
-    return Promise.all(
-      this._hiddens.map((hidden) => {
-        return this.dataSource.hidden(hidden)
-      })
-    );
+    const results: PersistentUnitResult[] = [];
+
+    for (const hidden of this._hiddens) {
+      results.push(await this.dataSource.hidden(hidden));
+    }
+
+    return results;
   }
 
   private async procedureAll(): Promise<PersistentUnitResult[]> {
-    return Promise.all(
-      this._procedures.map((procedure) => {
-        return this.dataSource.procedure(this, procedure)
-      })
-    );
+    const results: PersistentUnitResult[] = [];
+
+    for (const procedure of this._procedures) {
+      results.push(await this.dataSource.procedure(this, procedure));
+    }
+
+    return results;
   }
 }
