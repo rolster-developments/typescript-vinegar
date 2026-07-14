@@ -1,4 +1,5 @@
 import { Optional } from '@rolster/commons';
+
 import { Entity } from './entity';
 
 export abstract class AbstractRepository<T extends Entity> {

@@ -1,7 +1,7 @@
 export * from './database';
 export * from './datasource';
-export * from './entity-manager';
 export * from './entity';
+export * from './entity-manager';
 export { modelIsEditable, modelIsHideable } from './helpers';
 export * from './persistent-unit';
 export * from './procedure';
