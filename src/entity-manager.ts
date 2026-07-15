@@ -1,6 +1,5 @@
 import { fromPromise,Result, ResultFactory } from '@rolster/commons';
 import { v4 as uuid } from 'uuid';
-
 import { AbstractEntityDataSource } from './datasource';
 import {
   EntityPersist,
