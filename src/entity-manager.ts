@@ -89,7 +89,9 @@ export class EntityManager<
   public sync(sync: VinegarSync): void {
     const { entity, model, relationable } = sync;
 
-    relationable && this.relation(entity, model);
+    if (relationable) {
+      this.relation(entity, model);
+    }
 
     this._syncs.push(sync);
   }
@@ -97,7 +99,9 @@ export class EntityManager<
   public refresh(refresh: VinegarRefresh): void {
     const { entity, model, relationable } = refresh;
 
-    relationable && this.relation(entity, model);
+    if (relationable) {
+      this.relation(entity, model);
+    }
 
     this._refreshs.push(refresh);
   }
@@ -110,9 +114,11 @@ export class EntityManager<
     const result = this.select(entity);
 
     if (result.isSuccess) {
-      !modelIsHideable(result.value)
-        ? this._destroys.push(result.value)
-        : this._hiddens.push(result.value);
+      if (modelIsHideable(result.value)) {
+        this._hiddens.push(result.value);
+      } else {
+        this._destroys.push(result.value);
+      }
     }
   }
 
@@ -168,7 +174,9 @@ export class EntityManager<
     for (const persist of this._persists) {
       const model = await fromPromise(persist.create(this));
 
-      persist.relationable && this.relation(persist.entity, model);
+      if (persist.relationable) {
+        this.relation(persist.entity, model);
+      }
 
       results.push(await this.dataSource.insert(model));
     }
