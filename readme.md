@@ -21,7 +21,7 @@ You must install the `@rolster/types` to define package data types, which are co
 ## Overview
 
 Vinegar provides the **abstractions** for a clean-architecture persistence
-layer built around the *Unit of Work* and *Repository* patterns. It keeps your
+layer built around the _Unit of Work_ and _Repository_ patterns. It keeps your
 domain (entities) decoupled from the persistence details (the ORM), which live
 behind a `Datasource`/`Database` pair.
 
@@ -50,12 +50,12 @@ class User extends Entity {
 
 Models — the persisted shape — are described by interfaces from `types.ts`:
 
-| Interface       | Shape                                            |
-| --------------- | ------------------------------------------------ |
-| `AbstractModel` | `{ id: number }`                                 |
-| `EditableModel` | adds `updatedAt?: Date`                          |
+| Interface       | Shape                                                 |
+| --------------- | ----------------------------------------------------- |
+| `AbstractModel` | `{ id: number }`                                      |
+| `EditableModel` | adds `updatedAt?: Date`                               |
 | `HideableModel` | adds `hidden: boolean; hiddenAt?: Date` (soft delete) |
-| `Model`         | hideable **and** editable                        |
+| `Model`         | hideable **and** editable                             |
 
 Helpers `modelIsEditable(model)` and `modelIsHideable(model)` are type guards
 over those shapes.
@@ -93,17 +93,17 @@ these abstract classes:
 
 ```typescript
 abstract class AbstractEntityManager {
-  persist(persist: EntityPersist): void;       // queue a create
-  persists(persists: EntityPersistList): void;  // queue multiple creates
-  sync(sync: EntitySync): void;                 // queue an update (diff-based)
-  refresh(refresh: EntityRefresh): void;        // queue a reload
-  destroy(entity: AbstractEntity): void;        // queue a delete (or soft-hide)
-  procedure(procedure: AbstractProcedure): void;// queue a custom operation
-  relation(entity, model): void;                // link an entity to its model
-  link<E>(entity: E, model): E;                 // link and return the entity
-  select<M>(entity): Result<M>;                 // get the model linked to an entity
-  flush(): Promise<PersistentUnitResult[]>;     // run everything in order
-  dispose(): void;                              // clear the queue
+  persist(persist: EntityPersist): void; // queue a create
+  persists(persists: EntityPersistList): void; // queue multiple creates
+  sync(sync: EntitySync): void; // queue an update (diff-based)
+  refresh(refresh: EntityRefresh): void; // queue a reload
+  destroy(entity: AbstractEntity): void; // queue a delete (or soft-hide)
+  procedure(procedure: AbstractProcedure): void; // queue a custom operation
+  relation(entity, model): void; // link an entity to its model
+  link<E>(entity: E, model): E; // link and return the entity
+  select<M>(entity): Result<M>; // get the model linked to an entity
+  flush(): Promise<PersistentUnitResult[]>; // run everything in order
+  dispose(): void; // clear the queue
 }
 ```
 
@@ -123,7 +123,14 @@ Every operation produces a `PersistentUnitResult`:
 
 ```typescript
 class PersistentUnitResult {
-  code: 'insert' | 'update' | 'refresh' | 'delete' | 'hidden' | 'procedure' | 'operation';
+  code:
+    | 'insert'
+    | 'update'
+    | 'refresh'
+    | 'delete'
+    | 'hidden'
+    | 'procedure'
+    | 'operation';
   error: any; // null/undefined when the operation succeeded
   model?: AbstractModel;
 }
