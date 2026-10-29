@@ -265,4 +265,4 @@ For a concrete, ready-to-use wiring of all these abstractions see
 
 ## Contributing
 
-- Daniel Andrés Castillo Pedroza :rocket:
+:sparkles: Daniel Andrés Castillo Pedroza
