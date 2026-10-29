@@ -18,7 +18,7 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "ES2020",
+    "target": "ES2022",
     "types": ["vitest/globals"]
   },
   "files": ["node_modules/@rolster/types/index.d.ts"],
