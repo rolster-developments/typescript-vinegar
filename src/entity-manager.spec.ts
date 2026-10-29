@@ -9,12 +9,7 @@ import {
 import { EntityManager } from './entity-manager';
 import { AbstractProcedure } from './procedure';
 import { PersistentUnitResult } from './result';
-import {
-  AbstractEntity,
-  AbstractModel,
-  HideableModel,
-  QueryEntityManager
-} from './types';
+import { AbstractModel, HideableModel, QueryEntityManager } from './types';
 import { RefreshModel } from './values';
 
 const UUID = '3f2504e0-4f89-11d3-9a0c-0305e82c3301';
@@ -71,13 +66,11 @@ class FakeDataSource extends AbstractEntityDataSource {
     result('insert', model)
   );
 
-  public update = vi.fn(async (model: AbstractModel) =>
+  public update = vi.fn(async (model: AbstractModel, _changes: LiteralObject) =>
     result('update', model)
   );
 
-  public refresh = vi.fn(async (_models: RefreshModel[]) =>
-    result('refresh')
-  );
+  public refresh = vi.fn(async (_models: RefreshModel[]) => result('refresh'));
 
   public delete = vi.fn(async (model: AbstractModel) =>
     result('delete', model)
