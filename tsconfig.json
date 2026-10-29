@@ -5,7 +5,7 @@
     "declarationDir": "dist/esm",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["DOM", "ES2020"],
+    "lib": ["ES2024"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noFallthroughCasesInSwitch": true,
