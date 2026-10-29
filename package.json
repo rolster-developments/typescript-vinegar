@@ -1,6 +1,6 @@
 {
   "name": "@rolster/vinegar",
-  "version": "4.1.4",
+  "version": "4.2.0",
   "type": "module",
   "description": "Container package of basic classes to implement a clean architecture.",
   "license": "MIT",
@@ -45,7 +45,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@rolster/rollup": "^3.0.0",
-    "@rolster/types": "^1.1.1",
+    "@rolster/types": "^1.2.0",
     "eslint": "^10.7.0",
     "eslint-plugin-perfectionist": "^5.10.0",
     "eslint-plugin-simple-import-sort": "^13.0.0",

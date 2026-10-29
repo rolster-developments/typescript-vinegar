@@ -2,7 +2,7 @@ import { modelToLiteralObject, verifyChangesInModel } from './helpers';
 import { AbstractEntity, AbstractModel, QueryEntityManager } from './types';
 import { RefreshModel } from './values';
 
-type RefreshResponse = RefreshModel[] | Promise<RefreshModel[]>;
+type RefreshResponse = Awaitable<RefreshModel[]>;
 
 export class Entity implements AbstractEntity {
   constructor(public readonly uuid: string) {}
@@ -17,7 +17,7 @@ export abstract class EntityPersist<
     public readonly relationable = true
   ) {}
 
-  public abstract create(manager: QueryEntityManager): M | Promise<M>;
+  public abstract create(manager: QueryEntityManager): Awaitable<M>;
 }
 
 export abstract class EntityPersistList<E extends AbstractEntity> {
@@ -25,7 +25,7 @@ export abstract class EntityPersistList<E extends AbstractEntity> {
 
   public abstract create(
     manager: QueryEntityManager
-  ): AbstractModel[] | Promise<AbstractModel[]>;
+  ): Awaitable<AbstractModel[]>;
 }
 
 export abstract class EntitySync<
