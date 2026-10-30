@@ -39,7 +39,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@rolster/commons": "^4.2.4",
+    "@rolster/commons": "^4.3.0",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
